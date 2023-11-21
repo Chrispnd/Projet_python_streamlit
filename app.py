@@ -1,29 +1,56 @@
 import streamlit as st
 import pandas as pd
 import duckdb as db
+import io
 
-st.write("""
-# SQL SRS
-Space Repetition System
-""")
+CSV = '''
+beverage,price
+orange juice, 2.5
+Expresso,2
+Tea,3
+'''
+beverages = pd.read_csv(io.StringIO(CSV))
 
-option = st.selectbox(
-    "What would you like to review ,",
-    ("Joins", "Groupby", "Window functions"),
-    index=None,
-    placeholder="Select a thing"
-)
+CSV2 = '''
+food_item, food_price
+cookie, 2.5
+chocolatine, 2
+muffin, 3
+'''
 
-st.write('You selected', option)
+food_items = pd.read_csv(io.StringIO(CSV2))
 
-data = {"a": [1, 2, 3], "b": [4, 5, 6]}
-df = pd.DataFrame(data)
+answer = """
+SELECT * FROM beverages
+CROSS JOIN food_items
+"""
 
-sql_query = st.text_area(label="entrez votre input")
-try:
-    result=db.query(sql_query).df()
-    st.write(f"Vous avez entré la query suivante: {sql_query}")
+solution = db.sql(answer).df()
+
+with st.sidebar:
+    option = st.selectbox(
+        "What would you like to review ? Hum",
+        ("Joins", "Groupby", "Window functions"),
+        index=None,
+        placeholder="Select a thing"
+    )
+    st.write('You selected', option)
+
+st.header("enter your code :")
+query = st.text_area(label="votre code SQL ici", key="user_input")
+if query:
+    result = db.sql(query).df()
     st.dataframe(result)
-except:
-    st.write("Vous n'avez pas encore rentré de réponse")
 
+tab2, tab3 = st.tabs(["Tables", "Solution"])
+
+with tab2:
+    st.write("table: beverages")
+    st.dataframe(beverages)
+    st.write("table: food_items")
+    st.dataframe(food_items)
+    st.write("expected :")
+    st.dataframe(solution)
+
+with tab3:
+    st.write(answer)
