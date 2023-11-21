@@ -27,6 +27,15 @@ CROSS JOIN food_items
 
 solution = db.sql(answer).df()
 
+with st.sidebar:
+    option = st.selectbox(
+        "What would you like to review ? Hum",
+        ("Joins", "Groupby", "Window functions"),
+        index=None,
+        placeholder="Select a thing"
+    )
+    st.write('You selected', option)
+
 st.header("enter your code :")
 query = st.text_area(label="votre code SQL ici", key="user_input")
 if query:
