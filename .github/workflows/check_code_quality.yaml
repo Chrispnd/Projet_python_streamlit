@@ -20,4 +20,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install isort
       - run: |
-          isort .
+          isort --verbose .
