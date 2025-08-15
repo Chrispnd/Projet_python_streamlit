@@ -1,51 +1,44 @@
 # pylint: disable=missing-module-docstring
 import duckdb as db
-import pandas as pd
 import streamlit as st
-import io
+import os
 
+if "data" not in os.listdir():
+    print("Creating folder data")
+    os.mkdir("data")
 
-CSV = """
-beverage,price
-orange juice,2.5
-Expresso,2
-Tea,3
-"""
-beverages = pd.read_csv(io.StringIO(CSV))
+if "sql_database" not in os.listdir("data"):
+    exec(open("init_db.py").read())
 
-CSV2 = """
-food_item,food_price
-cookie,2.5
-chocolatine,2
-muffin,3
-"""
-
-food_items = pd.read_csv(io.StringIO(CSV2))
-
-ANSWER_STR = """
-SELECT * FROM beverages
-CROSS JOIN food_items
-"""
-
-solution_df = db.sql(ANSWER_STR).df()
+conn = db.connect(database = "data/sql_database.duckdb", read_only = False)
 
 with st.sidebar:
-    option = st.selectbox(
+    available_themes = conn.execute("SELECT DISTINCT theme FROM memory_state").df()
+    theme = st.selectbox(
         "What would you like to review ? Hum",
-        ("Joins", "Groupby", "Window functions"),
+        available_themes["theme"],
         index=None,
         placeholder="Select a thing",
     )
-    st.write("You selected", option)
+    st.write("You selected", theme)
+
+    if theme:
+        exercise = conn.execute(f"SELECT * FROM memory_state WHERE theme = '{theme}' ORDER BY last_reviewed ASC").df()
+    else:
+        exercise = conn.execute(f"SELECT * FROM memory_state ORDER BY last_reviewed ASC").df()
+
+    st.write(exercise)
+    exercise_name = exercise.loc[0, "exercise_name"]
+    with open(f"answers/{exercise_name}.sql", "r") as f:
+        answer = f.read()
+
+    solution_df = conn.execute(answer).df()
 
 st.header("enter your code :")
 query = st.text_area(label="votre code SQL ici", key="user_input")
 if query:
-    result = db.sql(query).df()
+    result = conn.execute(query).df()
     st.dataframe(result)
-
-    #    if len(result.columns) != len(solution_df.columns):
-    #        st.write("Some columns are missing")
 
     try:
         result = result[solution_df.columns]
@@ -62,12 +55,11 @@ if query:
 tab2, tab3 = st.tabs(["Tables", "Solution"])
 
 with tab2:
-    st.write("table: beverages")
-    st.dataframe(beverages)
-    st.write("table: food_items")
-    st.dataframe(food_items)
-    st.write("expected :")
-    st.dataframe(solution_df)
+    exercise_tables = (exercise.loc[0, "tables"])
+    for table in exercise_tables:
+        st.write(f"table : {table}")
+        donnees_tables = conn.execute(f"SELECT * FROM {table}").df()
+        st.dataframe(donnees_tables)
 
 with tab3:
-    st.write(ANSWER_STR)
+    st.write(answer)
