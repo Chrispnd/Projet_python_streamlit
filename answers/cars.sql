@@ -1,0 +1,1 @@
+SELECT * FROM model CROSS JOIN paint
